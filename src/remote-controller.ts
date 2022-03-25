@@ -82,6 +82,7 @@ exports.lambdaHandler = async (event, context) => {
         const id = element["body"]
 
         const articleResponse: any = await axios.get(`https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
+        console.log(articleResponse)
         if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
         var article: Article = articleResponse["data"] as Article;
         console.log(article)
