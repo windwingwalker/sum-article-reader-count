@@ -19,4 +19,5 @@ module "lambda" {
   lambda_role = var.lambda_role
   tag = var.tag
   api_id = var.api_id
+  aws_account_id = var.aws_account_id
 }
