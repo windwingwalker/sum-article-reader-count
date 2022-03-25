@@ -9,6 +9,7 @@ resource "aws_ecr_repository" "default" {
 
 resource "aws_lambda_function" "default" {
   function_name = var.app_name
+  timeout = 900
 
   package_type = "Image"
   image_uri = "${aws_ecr_repository.default.repository_url}:${var.tag}"
