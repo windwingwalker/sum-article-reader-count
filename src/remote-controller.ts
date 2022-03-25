@@ -4,10 +4,8 @@ import { HTTPResponse } from "./http-response"
 import { Article, ArticleIndex, PlainArticle, StatusCode, ArticleMetadata } from "./model";
 import axios from "axios";
 import { ArticleIndexNotFoundError, ArticleIndexUploadError, ArticleNotFoundError, ArticleUploadError } from "./error";
-import { SQSClient, ReceiveMessageCommand, ReceiveMessageCommandOutput, DeleteMessageCommand, DeleteMessageCommandOutput } from "@aws-sdk/client-sqs";
 
 const dynamodbClient = new DynamoDBClient({ region: "us-east-1" });
-const sqsClient = new SQSClient({ region: "us-east-1" });
 
 const putArticle = async (article: Article): Promise<StatusCode> => {
   const objectInDynamoDB = marshall(article, {convertClassInstanceToMap: true})
@@ -18,7 +16,6 @@ const putArticle = async (article: Article): Promise<StatusCode> => {
 
 const rewriteArticleIndex = (articleIndex: ArticleIndex, article: Article, index: [number, number]): ArticleIndex => {
   // Handle new article
-
   articleIndex["body"][index[0]][index[1]] = {
     firstPublished: article["firstPublished"],
     lastModified: article["lastModified"],
@@ -57,24 +54,9 @@ const articleIsExisted = (articleIndex: ArticleIndex, article: Article): [number
   return res;
 }
 
-const rewriteArticle = (articleIndex: ArticleIndex, article: Article, index: [number, number]): Article => {
-  article["edition"] = articleIndex["body"][index[0]][index[1]]["edition"] + 1;
+const rewriteArticle = (article: Article): Article => {
+  article["views"] = article["views"] + 1
   return article;
-}
-
-const pollMessage = async (): Promise<number> => {
-  const receiveCommand: ReceiveMessageCommand = new ReceiveMessageCommand({QueueUrl: "https://sqs.us-east-1.amazonaws.com/730917489165/article-reader-count", MaxNumberOfMessages: 1, WaitTimeSeconds: 5});
-  const receiveResponse: ReceiveMessageCommandOutput = await sqsClient.send(receiveCommand);
-  if (receiveResponse.$metadata.httpStatusCode == 200){
-    console.log(receiveResponse)
-    console.log(receiveResponse["Messages"])
-    console.log(receiveResponse["Messages"][0])
-    const deleteCommand: DeleteMessageCommand = new DeleteMessageCommand({QueueUrl: "https://sqs.us-east-1.amazonaws.com/730917489165/article-reader-count", ReceiptHandle: receiveResponse["Messages"][0]["ReceiptHandle"]});
-    const deleteResponse: DeleteMessageCommandOutput = await sqsClient.send(deleteCommand);
-    return deleteResponse["$metadata"]["httpStatusCode"]
-  }else{
-    return null;
-  }
 }
 
 exports.lambdaHandler = async (event, context) => {
@@ -92,33 +74,34 @@ exports.lambdaHandler = async (event, context) => {
    */
   try {
     const messageList: any = event["Records"]
-    messageList.forEach(element => {
+    var processedMessage = [];
+
+    messageList.forEach(async element =>  {
       if (element["eventSource"] == "aws:sqs"){
-        console.log(element["body"])
+        const id = element["body"]
+
+        const articleResponse: any = await axios.get("https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article")
+        if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
+        var article: Article = articleResponse["data"] as Article;
+
+        const articleIndexResponse: any = await axios.get("https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article-index")
+        if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
+        var articleIndex: ArticleIndex = articleIndexResponse["data"] as ArticleIndex;
+
+        const pageIndex: [number, number] = articleIsExisted(articleIndex, article);
+        if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
+
+        article = rewriteArticle(article)
+        const articleStatusCode = await putArticle(article);
+        if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
+
+        articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
+        const indexStatusCode = await putArticleIndex(articleIndex);
+        if (indexStatusCode != 200) throw new ArticleIndexUploadError();
       }
     });
-    
-    // const id: number = +event["queryStringParameters"]['id']
-    // const plainArticle: PlainArticle = JSON.parse(event["body"]);
-    // var article: Article = new Article(plainArticle, id);
 
-    // const articleIndexResponse: any = await axios.get("https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article-index")
-    // if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
-    // var articleIndex: ArticleIndex = articleIndexResponse["data"] as ArticleIndex;
-
-    // const pageIndex: [number, number] = articleIsExisted(articleIndex, article);
-    // if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
-
-    // article = rewriteArticle(articleIndex, article, pageIndex)
-    // const articleStatusCode = await putArticle(article);
-    // if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
-
-    // articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
-    // const indexStatusCode = await putArticleIndex(articleIndex);
-    // if (indexStatusCode != 200) throw new ArticleIndexUploadError();
-
-    // return new HTTPResponse(200, JSON.stringify(article));
-    return new HTTPResponse(200, "")
+    return new HTTPResponse(200, JSON.stringify(processedMessage));
   } catch (err) {
     console.error(err);
     return new HTTPResponse(err["status"], JSON.stringify({"Error Message: ": err["message"]}));
