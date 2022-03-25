@@ -11,6 +11,7 @@ pipeline{
     TF_VAR_api_id              = "7ey4ou4hpc"
     TF_VAR_tag                 = "${env.BUILD_NUMBER}"
     TF_VAR_app_name            = "${APP_NAME}"
+    TF_VAR_aws_account_id      = "${AWS_ACCOUNT_ID}"
   }
   tools {
     terraform 'TerraformDefault'
@@ -19,7 +20,7 @@ pipeline{
     ansiColor('xterm')
   }
   stages{
-    stage('Compile TS to JS'){
+    stage('Compile'){
       agent {
         docker {
           image 'node:14-buster'
@@ -33,7 +34,7 @@ pipeline{
         stash includes: 'dist/**/*', name: 'distJs'
       }
     }
-    stage('Docker image build & push'){
+    stage('Build Image'){
       steps{
         sh 'ls -al'
         dir('dist'){
@@ -41,14 +42,19 @@ pipeline{
         }
         script{
           image = docker.build("${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/${APP_NAME}:${TF_VAR_tag}")
+        }
+      }
+    }
+    stage('Push Image'){
+      steps{
+        script{
           docker.withRegistry("https://${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com", "ecr:us-east-1:aws_credentials") {
-            // docker.image("${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/${APP_NAME}:${TF_VAR_tag}").push()
             image.push()
           }
         }
       }
     }
-    stage('Terraform Apply'){
+    stage('Deploy'){
       steps{
         dir('terraform'){
           sh 'terraform init -input=false'
