@@ -76,6 +76,7 @@ exports.lambdaHandler = async (event, context) => {
     const messageList: any = event["Records"]
     var processedMessage = [];
 
+    console.log(event["Records"])
     messageList.forEach(async element =>  {
       if (element["eventSource"] == "aws:sqs"){
         const id = element["body"]
@@ -83,6 +84,7 @@ exports.lambdaHandler = async (event, context) => {
         const articleResponse: any = await axios.get(`https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
         if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
         var article: Article = articleResponse["data"] as Article;
+        console.log(article)
 
         const articleIndexResponse: any = await axios.get("https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article-index")
         if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
@@ -92,6 +94,7 @@ exports.lambdaHandler = async (event, context) => {
         if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
 
         article = rewriteArticle(article)
+        console.log(article)
         const articleStatusCode = await putArticle(article);
         if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
 
