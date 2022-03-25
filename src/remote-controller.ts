@@ -73,7 +73,7 @@ exports.lambdaHandler = async (event, context) => {
    * 8) Put article index to db
    */
   try {
-    const messageList: any = JSON.stringify(event["Records"])
+    const messageList: any = JSON.parse(JSON.stringify(event["Records"]))
     var processedMessage = [];
 
     console.log(event["Records"])
