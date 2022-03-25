@@ -80,6 +80,7 @@ exports.lambdaHandler = async (event, context) => {
     messageList.forEach(async element =>  {
       if (element["eventSource"] == "aws:sqs"){
         const id = element["body"]
+        console.log(id)
 
         const articleResponse: any = await axios.get(`https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
         console.log(articleResponse)
