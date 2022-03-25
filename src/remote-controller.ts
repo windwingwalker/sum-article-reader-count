@@ -91,7 +91,13 @@ exports.lambdaHandler = async (event, context) => {
    * 8) Put article index to db
    */
   try {
-    await pollMessage()
+    const messageList: any = event["Records"]
+    messageList.forEach(element => {
+      if (element["eventSource"] == "aws:sqs"){
+        console.log(element["body"])
+      }
+    });
+    
     // const id: number = +event["queryStringParameters"]['id']
     // const plainArticle: PlainArticle = JSON.parse(event["body"]);
     // var article: Article = new Article(plainArticle, id);
