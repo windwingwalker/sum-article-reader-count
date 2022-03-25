@@ -63,7 +63,7 @@ const rewriteArticle = (articleIndex: ArticleIndex, article: Article, index: [nu
 }
 
 const pollMessage = async (): Promise<number> => {
-  const receiveCommand: ReceiveMessageCommand = new ReceiveMessageCommand({QueueUrl: "https://sqs.us-east-1.amazonaws.com/730917489165/article-reader-count", MaxNumberOfMessages: 1});
+  const receiveCommand: ReceiveMessageCommand = new ReceiveMessageCommand({QueueUrl: "https://sqs.us-east-1.amazonaws.com/730917489165/article-reader-count", MaxNumberOfMessages: 1, WaitTimeSeconds: 5});
   const receiveResponse: ReceiveMessageCommandOutput = await sqsClient.send(receiveCommand);
   if (receiveResponse.$metadata.httpStatusCode == 200){
     console.log(receiveResponse)
