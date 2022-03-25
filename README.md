@@ -9,4 +9,4 @@ This is a microservice of an application. The application consists of operations
 - [create-article](https://github.com/windwingwalker/create-article)
 - [update-article](https://github.com/windwingwalker/update-article)
 - [collect-article-reader-count](https://github.com/windwingwalker/collect-article-reader-count)
-- [sum-article-reader-count](https://github.com/windwingwalker/sun-article-reader-count)
+- [sum-article-reader-count](https://github.com/windwingwalker/sum-article-reader-count)
