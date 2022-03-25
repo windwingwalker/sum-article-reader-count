@@ -4,6 +4,7 @@ import { HTTPResponse } from "./http-response"
 import { Article, ArticleIndex, PlainArticle, StatusCode, ArticleMetadata } from "./model";
 import axios from "axios";
 import { ArticleIndexNotFoundError, ArticleIndexUploadError, ArticleNotFoundError, ArticleUploadError } from "./error";
+import { SQSHandler, SQSEvent } from "aws-lambda";
 
 const dynamodbClient = new DynamoDBClient({ region: "us-east-1" });
 
@@ -59,7 +60,19 @@ const rewriteArticle = (article: Article): Article => {
   return article;
 }
 
-exports.lambdaHandler = async (event, context) => {
+interface SQSRecord{
+  messageId: string,
+  receiptHandle: string,
+  body: string,
+  attributes: any
+  messageAttributes: any
+  md5OfBody: string
+  eventSource: string
+  eventSourceARN: string
+  awsRegion: string
+}
+
+exports.lambdaHandler = async (event: SQSEvent, context) => {
   /**
    * 1) Poll queue message
    * 2) Delete queue message
@@ -74,12 +87,13 @@ exports.lambdaHandler = async (event, context) => {
    */
   try {
     
-    const messageList: any = event["Records"]
+    const messageList: SQSRecord[] = event["Records"]
     
     var processedMessage = [];
 
     console.log(messageList)
-    for (let element in event["Records"]){
+    for (var element of messageList){
+      // const { body: any } = element;
       const id = element["body"]
       console.log(id)
 
