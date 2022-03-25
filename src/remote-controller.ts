@@ -80,7 +80,7 @@ exports.lambdaHandler = async (event, context) => {
       if (element["eventSource"] == "aws:sqs"){
         const id = element["body"]
 
-        const articleResponse: any = await axios.get("https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article")
+        const articleResponse: any = await axios.get(`https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
         if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
         var article: Article = articleResponse["data"] as Article;
 
