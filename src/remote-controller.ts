@@ -8,13 +8,6 @@ import { SQSHandler, SQSEvent } from "aws-lambda";
 
 const dynamodbClient = new DynamoDBClient({ region: "us-east-1" });
 
-const putArticle = async (article: Article): Promise<StatusCode> => {
-  const objectInDynamoDB = marshall(article, {convertClassInstanceToMap: true})
-  const command: PutItemCommand = new PutItemCommand({Item: objectInDynamoDB, TableName: "articles"});
-  const response: PutItemCommandOutput = await dynamodbClient.send(command);
-  return response.$metadata.httpStatusCode
-}
-
 const rewriteArticleIndex = (articleIndex: ArticleIndex, article: Article, index: [number, number]): ArticleIndex => {
   // Handle new article
   articleIndex["body"][index[0]][index[1]] = {
@@ -40,7 +33,7 @@ const putArticleIndex = async (articleIndex: ArticleIndex): Promise<number> => {
 
 const articleIsExisted = (articleIndex: ArticleIndex, article: Article): [number, number] => {
   /**
-   * Return the page number of existed article in the index, or "0" for new article
+   * Return the location(index) of existed article in the article index, or [-1, -1] for new article
    */
   var res: [number, number] = [-1, -1];
 
@@ -58,6 +51,13 @@ const articleIsExisted = (articleIndex: ArticleIndex, article: Article): [number
 const rewriteArticle = (article: Article): Article => {
   article["views"] = article["views"] + 1
   return article;
+}
+
+const putArticle = async (article: Article): Promise<StatusCode> => {
+  const objectInDynamoDB = marshall(article, {convertClassInstanceToMap: true})
+  const command: PutItemCommand = new PutItemCommand({Item: objectInDynamoDB, TableName: "articles"});
+  const response: PutItemCommandOutput = await dynamodbClient.send(command);
+  return response.$metadata.httpStatusCode
 }
 
 interface SQSRecord{
@@ -86,24 +86,17 @@ exports.lambdaHandler = async (event: SQSEvent, context) => {
    * 8) Put article index to db
    */
   try {
-    
     const messageList: SQSRecord[] = event["Records"]
-    
     var processedMessage = [];
 
-    console.log(messageList)
-    for (var element of messageList){
-      // const { body: any } = element;
-      const id = element["body"]
-      console.log(id)
+    for (var message of messageList){
+      const id = message["body"]
 
-      const articleResponse: any = await axios.get(`https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
-      console.log(articleResponse)
+      const articleResponse: any = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
       if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
       var article: Article = articleResponse["data"] as Article;
-      console.log(article)
 
-      const articleIndexResponse: any = await axios.get("https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article-index")
+      const articleIndexResponse: any = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article-index`)
       if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
       var articleIndex: ArticleIndex = articleIndexResponse["data"] as ArticleIndex;
 
@@ -111,7 +104,6 @@ exports.lambdaHandler = async (event: SQSEvent, context) => {
       if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
 
       article = rewriteArticle(article)
-      console.log(article)
       const articleStatusCode = await putArticle(article);
       if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
 

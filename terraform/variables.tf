@@ -8,7 +8,6 @@ variable "aws_region" {
 
 variable "app_name" {
   type = string 
-  default = "sum-article-reader-count"
 }
 
 variable "lambda_role" {
@@ -19,6 +18,6 @@ variable "tag" {
   type = string
 }
 
-variable "aws_account_id" {
+variable "api_id" {
   type = string
 }

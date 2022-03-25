@@ -10,6 +10,6 @@ variable "tag" {
   type = string
 }
 
-variable "aws_account_id" {
+variable "api_id" {
   type = string
 }

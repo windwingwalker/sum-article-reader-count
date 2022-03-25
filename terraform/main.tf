@@ -18,5 +18,5 @@ module "lambda" {
   app_name = var.app_name
   lambda_role = var.lambda_role
   tag = var.tag
-  aws_account_id = var.aws_account_id
+  api_id = var.api_id
 }
