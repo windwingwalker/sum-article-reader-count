@@ -78,6 +78,7 @@ exports.lambdaHandler = async (event, context) => {
 
     console.log(event["Records"])
     for (let element in messageList){
+      console.log(element)
       const id = element["body"]
       console.log(id)
 
