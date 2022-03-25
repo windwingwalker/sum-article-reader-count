@@ -66,6 +66,7 @@ const pollMessage = async (): Promise<number> => {
   const receiveCommand: ReceiveMessageCommand = new ReceiveMessageCommand({QueueUrl: "https://sqs.us-east-1.amazonaws.com/730917489165/article-reader-count", MaxNumberOfMessages: 1});
   const receiveResponse: ReceiveMessageCommandOutput = await sqsClient.send(receiveCommand);
   if (receiveResponse.$metadata.httpStatusCode == 200){
+    console.log(receiveResponse["Messages"])
     console.log(receiveResponse["Messages"][0])
     const deleteCommand: DeleteMessageCommand = new DeleteMessageCommand({QueueUrl: "https://sqs.us-east-1.amazonaws.com/730917489165/article-reader-count", ReceiptHandle: receiveResponse["Messages"][0]["ReceiptHandle"]});
     const deleteResponse: DeleteMessageCommandOutput = await sqsClient.send(deleteCommand);
