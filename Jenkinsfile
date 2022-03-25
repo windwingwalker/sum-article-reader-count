@@ -53,7 +53,7 @@ pipeline{
           unstash 'distJs'
         }
         script{
-          docker.withRegistry("https://your.ecr.domain.amazonws.com", "ecr:us-east-1:${AWS_ADMIN_CREDENTIALS}") {
+          docker.withRegistry("${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com", "ecr:us-east-1:${AWS_ADMIN_CREDENTIALS}") {
             docker.image("${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/${APP_NAME}:${TF_VAR_tag}").push()
           }
         }
