@@ -10,7 +10,7 @@ resource "aws_ecr_repository" "default" {
 resource "aws_lambda_function" "default" {
   function_name = var.app_name
   timeout = 900
-  environment = {
+  environment {
     variables = {
       API_ID = var.api_id
     }
