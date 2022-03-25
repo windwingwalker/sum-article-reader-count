@@ -8,7 +8,7 @@ variable "aws_region" {
 
 variable "app_name" {
   type = string 
-  default = "update-article"
+  default = "sum-article-reader-count"
 }
 
 variable "lambda_role" {

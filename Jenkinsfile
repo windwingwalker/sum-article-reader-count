@@ -53,7 +53,7 @@ pipeline{
           sh 'terraform plan -out=tfplan -input=false'
           sh 'terraform apply -input=false -auto-approve tfplan'
         }
-        // sh 'rm -rf dist/' 
+        sh 'rm -rf dist/' 
       }
     }
   }
