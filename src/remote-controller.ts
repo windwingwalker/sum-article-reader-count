@@ -77,7 +77,7 @@ exports.lambdaHandler = async (event, context) => {
     var processedMessage = [];
 
     console.log(event["Records"])
-    messageList.forEach(async element =>  {
+    for (let element in messageList){
       if (element["eventSource"] == "aws:sqs"){
         const id = element["body"]
         console.log(id)
@@ -103,8 +103,10 @@ exports.lambdaHandler = async (event, context) => {
         articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
         const indexStatusCode = await putArticleIndex(articleIndex);
         if (indexStatusCode != 200) throw new ArticleIndexUploadError();
+
+        processedMessage.push(id)
       }
-    });
+    };
 
     return new HTTPResponse(200, JSON.stringify(processedMessage));
   } catch (err) {
