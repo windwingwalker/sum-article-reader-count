@@ -78,34 +78,32 @@ exports.lambdaHandler = async (event, context) => {
 
     console.log(event["Records"])
     for (let element in messageList){
-      if (element["eventSource"] == "aws:sqs"){
-        const id = element["body"]
-        console.log(id)
+      const id = element["body"]
+      console.log(id)
 
-        const articleResponse: any = await axios.get(`https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
-        console.log(articleResponse)
-        if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
-        var article: Article = articleResponse["data"] as Article;
-        console.log(article)
+      const articleResponse: any = await axios.get(`https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
+      console.log(articleResponse)
+      if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
+      var article: Article = articleResponse["data"] as Article;
+      console.log(article)
 
-        const articleIndexResponse: any = await axios.get("https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article-index")
-        if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
-        var articleIndex: ArticleIndex = articleIndexResponse["data"] as ArticleIndex;
+      const articleIndexResponse: any = await axios.get("https://7ey4ou4hpc.execute-api.us-east-1.amazonaws.com/prod/article-index")
+      if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
+      var articleIndex: ArticleIndex = articleIndexResponse["data"] as ArticleIndex;
 
-        const pageIndex: [number, number] = articleIsExisted(articleIndex, article);
-        if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
+      const pageIndex: [number, number] = articleIsExisted(articleIndex, article);
+      if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
 
-        article = rewriteArticle(article)
-        console.log(article)
-        const articleStatusCode = await putArticle(article);
-        if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
+      article = rewriteArticle(article)
+      console.log(article)
+      const articleStatusCode = await putArticle(article);
+      if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
 
-        articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
-        const indexStatusCode = await putArticleIndex(articleIndex);
-        if (indexStatusCode != 200) throw new ArticleIndexUploadError();
+      articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
+      const indexStatusCode = await putArticleIndex(articleIndex);
+      if (indexStatusCode != 200) throw new ArticleIndexUploadError();
 
-        processedMessage.push(id)
-      }
+      processedMessage.push(id)
     };
 
     return new HTTPResponse(200, JSON.stringify(processedMessage));
