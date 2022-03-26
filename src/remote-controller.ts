@@ -2,7 +2,7 @@ import { DynamoDBClient, PutItemCommand, PutItemCommandOutput } from "@aws-sdk/c
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { HTTPResponse } from "./http-response"
 import { Article, ArticleIndex, PlainArticle, StatusCode, ArticleMetadata } from "./model";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { ArticleIndexNotFoundError, ArticleIndexUploadError, ArticleNotFoundError, ArticleUploadError } from "./error";
 import { SQSHandler, SQSEvent } from "aws-lambda";
 
@@ -74,29 +74,25 @@ interface SQSRecord{
 
 exports.lambdaHandler = async (event: SQSEvent, context) => {
   /**
-   * 1) Poll queue message
-   * 2) Delete queue message
-   * 2) Get article based on message
+   * 1) Get message list from event, and loop the following
+   * 2) Get article id from message
    * 3) Get the article index
-   * 4) Update article's views
-   * 5) Update article's views in article index
-   * 6) If article do not exist, throw error
-   * 7) Put article to db
-   * 7) Update article index based on article
-   * 8) Put article index to db
+   * 4) Get the article based on article id
+   * 4) Update article's views, and put article to db
+   * 5) Update article's views in article index, and put article index to db
    */
   try {
     const messageList: SQSRecord[] = event["Records"]
     var processedMessage = [];
 
     for (var message of messageList){
-      const id = message["body"]
+      const id: string = message["body"]
 
-      const articleResponse: any = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
+      const articleResponse: AxiosResponse = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
       if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
       var article: Article = articleResponse["data"] as Article;
 
-      const articleIndexResponse: any = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article-index`)
+      const articleIndexResponse: AxiosResponse = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article-index`)
       if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
       var articleIndex: ArticleIndex = articleIndexResponse["data"] as ArticleIndex;
 
@@ -104,11 +100,11 @@ exports.lambdaHandler = async (event: SQSEvent, context) => {
       if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
 
       article = rewriteArticle(article)
-      const articleStatusCode = await putArticle(article);
+      const articleStatusCode: number = await putArticle(article);
       if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
 
       articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
-      const indexStatusCode = await putArticleIndex(articleIndex);
+      const indexStatusCode: number = await putArticleIndex(articleIndex);
       if (indexStatusCode != 200) throw new ArticleIndexUploadError();
 
       processedMessage.push(id)
