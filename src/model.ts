@@ -5,6 +5,7 @@ export interface PlainArticle{
   title: string;
   subtitle: string;
   type: string;
+  tags: string[];
   body: {
     [key: string]: string;
   }[];
@@ -18,6 +19,7 @@ export interface Article{
   type: string;
   edition: number;
   views: number;
+  tags: string[];
   body: {
     [key: string]: string;
   }[];
@@ -37,5 +39,6 @@ export interface ArticleMetadata{
   subtitle: string;
   type: string;
   edition: number;
-  views: number
+  views: number;
+  tags: string[];
 }
