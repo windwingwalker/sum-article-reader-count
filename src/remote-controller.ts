@@ -18,7 +18,8 @@ const rewriteArticleIndex = (articleIndex: ArticleIndex, article: Article, index
     type: article["type"],
     edition: article["edition"],
     views: article["views"],
-    tags: article["tags"]
+    tags: article["tags"],
+    series: article["series"]
   }
 
   articleIndex["lastModified"] = article["lastModified"];
