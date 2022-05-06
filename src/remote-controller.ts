@@ -68,8 +68,9 @@ const updateArticle = async (firstPublished: number, lastModified: number): Prom
       "firstPublished": {'N': firstPublished.toString()},
       "lastModified": {'N': lastModified.toString()}
     },
-    UpdateExpression: 'SET views = views + :incr',    
+    UpdateExpression: 'SET #views = #views + :incr',    
     ExpressionAttributeValues: { ':incr': {'N': '1'}},
+    ExpressionAttributeNames: { "#views": "views"},
     TableName: "articles"
   });
   const response: PutItemCommandOutput = await dynamodbClient.send(command);
