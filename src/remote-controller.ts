@@ -50,18 +50,6 @@ const articleIsExisted = (articleIndex: ArticleIndex, article: Article): [number
   return res;
 }
 
-const rewriteArticle = (article: Article): Article => {
-  article["views"] = article["views"] + 1
-  return article;
-}
-
-const putArticle = async (article: Article): Promise<StatusCode> => {
-  const objectInDynamoDB = marshall(article, {convertClassInstanceToMap: true})
-  const command: PutItemCommand = new PutItemCommand({Item: objectInDynamoDB, TableName: "articles"});
-  const response: PutItemCommandOutput = await dynamodbClient.send(command);
-  return response.$metadata.httpStatusCode
-}
-
 const updateArticle = async (firstPublished: number, lastModified: number): Promise<StatusCode> => {
   const command: UpdateItemCommand = new UpdateItemCommand({
     Key: {
@@ -110,25 +98,26 @@ exports.lambdaHandler = async (event: SQSEvent, context) => {
       const articleResponse: AxiosResponse = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
       if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
       var article: Article = articleResponse["data"] as Article;
+      console.log("4")
+      // const articleIndexResponse: AxiosResponse = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article-index`)
+      // if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
+      // var articleIndex: ArticleIndex = articleIndexResponse["data"] as ArticleIndex;
 
-      const articleIndexResponse: AxiosResponse = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article-index`)
-      if (articleIndexResponse["status"] == 404) throw new ArticleIndexNotFoundError();
-      var articleIndex: ArticleIndex = articleIndexResponse["data"] as ArticleIndex;
-
-      const pageIndex: [number, number] = articleIsExisted(articleIndex, article);
-      if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
-
-      // article = rewriteArticle(article)
-      // const articleStatusCode: number = await putArticle(article);
+      // const pageIndex: [number, number] = articleIsExisted(articleIndex, article);
+      // if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
+      console.log("1")
       const articleStatusCode: number = await updateArticle(article["firstPublished"], article["lastModified"]);
+      console.log("2")
       if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
-
-      articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
-      const indexStatusCode: number = await putArticleIndex(articleIndex);
-      if (indexStatusCode != 200) throw new ArticleIndexUploadError();
+      console.log("3")
+      // articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
+      // const indexStatusCode: number = await putArticleIndex(articleIndex);
+      // if (indexStatusCode != 200) throw new ArticleIndexUploadError();
 
       processedMessage.push(id)
+      console.log("5")
     };
+    console.log("6")
 
     return new HTTPResponse(200, JSON.stringify(processedMessage));
   } catch (err) {
