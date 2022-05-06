@@ -1,4 +1,4 @@
-import { DynamoDBClient, PutItemCommand, PutItemCommandOutput } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, PutItemCommand, PutItemCommandOutput, UpdateItemCommand, UpdateItemCommandOutput } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { HTTPResponse } from "./http-response"
 import { Article, ArticleIndex, PlainArticle, StatusCode, ArticleMetadata } from "./model";
@@ -62,6 +62,20 @@ const putArticle = async (article: Article): Promise<StatusCode> => {
   return response.$metadata.httpStatusCode
 }
 
+const updateArticle = async (firstPublished: number, lastModified: number): Promise<StatusCode> => {
+  const command: UpdateItemCommand = new UpdateItemCommand({
+    Key: {
+      "firstPublished": {'N': firstPublished.toString()},
+      "lastModified": {'N': lastModified.toString()}
+    },
+    UpdateExpression: 'SET views = views + :incr',    
+    ExpressionAttributeValues: { ':incr': {'N': '1'}},
+    TableName: "articles"
+  });
+  const response: PutItemCommandOutput = await dynamodbClient.send(command);
+  return response.$metadata.httpStatusCode
+}
+
 interface SQSRecord{
   messageId: string,
   receiptHandle: string,
@@ -86,9 +100,11 @@ exports.lambdaHandler = async (event: SQSEvent, context) => {
   try {
     const messageList: SQSRecord[] = event["Records"]
     var processedMessage = [];
+    console.log("message length is: " + messageList.length)
 
     for (var message of messageList){
       const id: string = message["body"]
+      console.log("message is: " + id)
 
       const articleResponse: AxiosResponse = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
       if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
@@ -101,8 +117,9 @@ exports.lambdaHandler = async (event: SQSEvent, context) => {
       const pageIndex: [number, number] = articleIsExisted(articleIndex, article);
       if (pageIndex[0] == -1 || pageIndex[1] == -1) throw new ArticleNotFoundError(article["firstPublished"]);
 
-      article = rewriteArticle(article)
-      const articleStatusCode: number = await putArticle(article);
+      // article = rewriteArticle(article)
+      // const articleStatusCode: number = await putArticle(article);
+      const articleStatusCode: number = await updateArticle(article["firstPublished"], article["lastModified"]);
       if (articleStatusCode != 200) throw new ArticleUploadError(article["firstPublished"]);
 
       articleIndex = rewriteArticleIndex(articleIndex, article, pageIndex)
