@@ -1,5 +1,9 @@
+data "aws_api_gateway_rest_api" "default" {
+  name = "${var.app_name}-gateway"
+}
+
 resource "aws_ecr_repository" "default" {
-  name                 = var.app_name
+  name                 = var.ms_name
   image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
@@ -8,11 +12,11 @@ resource "aws_ecr_repository" "default" {
 }
 
 resource "aws_lambda_function" "default" {
-  function_name = var.app_name
+  function_name = var.ms_name
   timeout = 900
   environment {
     variables = {
-      API_ID = var.api_id
+      API_ID = data.aws_api_gateway_rest_api.default.id
     }
   }
 
@@ -27,7 +31,7 @@ resource "aws_lambda_function" "default" {
 }
 
 resource "aws_cloudwatch_log_group" "default" {
-  name = "/aws/lambda/${var.app_name}"
+  name = "/aws/lambda/${var.ms_name}"
 
   retention_in_days = 30
 }

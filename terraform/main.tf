@@ -21,8 +21,8 @@ provider "aws" {
 module "lambda" {
   source = "./modules/lambda/"
   app_name = var.app_name
+  ms_name = var.ms_name
   lambda_role = var.lambda_role
   tag = var.tag
-  api_id = var.api_id
   aws_account_id = var.aws_account_id
 }
