@@ -20,14 +20,14 @@ export class ArticleIndexNotFoundError extends MyError{
 }
 
 export class ArticleNotFoundError extends MyError{
-  constructor(articleId) {
-    super(`Article ${articleId} was not found.`, 404);
+  constructor(firstPublished) {
+    super(`Article ${firstPublished} was not found.`, 404);
   }
 }
 
 export class ArticleUploadError extends MyError{
-  constructor(articleId) {
-    super(`Article ${articleId} was failed to upload.`, 500);
+  constructor(firstPublished) {
+    super(`Article ${firstPublished} was failed to upload.`, 500);
   }
 }
 

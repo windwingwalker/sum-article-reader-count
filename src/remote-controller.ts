@@ -37,8 +37,8 @@ interface SQSRecord{
 exports.lambdaHandler = async (event: SQSEvent, context) => {
   /**
    * 1) Get message list from event, and loop the following
-   * 2) Get article id from message
-   * 3) Get the article based on article id
+   * 2) Get article firstPublished from message
+   * 3) Get the article based on article firstPublished
    * 4) Update article's views, and update article's view attribute to db
    */
   try {
@@ -46,11 +46,11 @@ exports.lambdaHandler = async (event: SQSEvent, context) => {
     console.info("Message length is: " + messageList.length)
 
     for (var message of messageList){
-      const id: string = message["body"]
-      console.info("Message is: " + id)
+      const firstPublished: string = message["body"]
+      console.info("Message is: " + firstPublished)
 
-      const articleResponse: AxiosResponse = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article?id=${id}`)
-      if (articleResponse["status"] == 404) throw new ArticleNotFoundError(id);
+      const articleResponse: AxiosResponse = await axios.get(`https://${process.env.API_ID}.execute-api.us-east-1.amazonaws.com/prod/article?firstPublished=${firstPublished}`)
+      if (articleResponse["status"] == 404) throw new ArticleNotFoundError(firstPublished);
       var article: Article = articleResponse["data"] as Article;
     
       const articleStatusCode: number = await updateArticle(article["firstPublished"], article["lastModified"]);
