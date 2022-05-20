@@ -2,6 +2,10 @@ data "aws_api_gateway_rest_api" "default" {
   name = "${var.app_name}-gateway"
 }
 
+data "aws_iam_role" "default" {
+  name = "${var.app_name}-lambda"
+}
+
 resource "aws_ecr_repository" "default" {
   name                 = var.ms_name
   image_tag_mutability = "IMMUTABLE"
@@ -12,18 +16,20 @@ resource "aws_ecr_repository" "default" {
 }
 
 resource "aws_lambda_function" "default" {
-  function_name = var.ms_name
+  # Neccessary
+  function_name        = var.ms_name
+  package_type         = "Image"
+  image_uri            = "${aws_ecr_repository.default.repository_url}:${var.tag}"
+  role                 = data.aws_iam_role.default.arn
+  publish              = true
+  
+  # Optional
   timeout = 900
   environment {
     variables = {
       API_ID = data.aws_api_gateway_rest_api.default.id
     }
   }
-
-  package_type = "Image"
-  image_uri = "${aws_ecr_repository.default.repository_url}:${var.tag}"
-
-  role = var.lambda_role
   depends_on = [
     aws_ecr_repository.default,
     aws_cloudwatch_log_group.default
